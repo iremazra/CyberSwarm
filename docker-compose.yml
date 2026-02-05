@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:13
+    container_name: cyberswarm-db
+    environment:
+      POSTGRES_USER: cyberswarm
+      POSTGRES_PASSWORD: cyberswarm
+      POSTGRES_DB: cyberswarm
+    healthcheck:
+      # pg_isready komutu veritabanının bağlantı kabul edip etmediğini kontrol eder
+      test: ["CMD-SHELL", "pg_isready -U cyberswarm -d cyberswarm"]
+      interval: 5s   # Her 5 saniyede bir kontrol et
+      timeout: 5s    # 5 saniye içinde cevap gelmezse başarısız say
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+  api:
+    build: .
+    container_name: cyberswarm-api
+    command: python -m app.main
+    volumes:
+      - .:/app
+    environment:
+      FLASK_APP: app.main:create_app
+      FLASK_ENV: development
+      DATABASE_URL: postgresql+psycopg2://cyberswarm:cyberswarm@db:5432/cyberswarm
+      PYTHONPATH: /app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+  
+
+volumes:
+  postgres_data:
